@@ -1,0 +1,216 @@
+
+
+# RADI SAMO SA NUMERICKIM PODACIMA !
+
+dataSet <- read.csv("world-happiness-report-2016.csv", stringsAsFactors = F)
+str(dataSet)
+summary(dataSet)
+
+# koristicemo sve varijable osim Country i Region jer k-means klasterovanje 
+# radi samo sa numerickim varijablama
+
+all(complete.cases(dataSet)) 
+# vraca TRUE ako nijedna nema NA vrednosti, a FALSE ako barem 1 ima neku NA vrednost
+which(complete.cases(dataSet) == F)
+# vraca koji redovi imaju NA vrednosti, ovde kaze da NA vrednost ima
+# red 93, to cemo srediti kasnije
+
+length(unique(dataSet$Region))
+length(unique(dataSet$Country))
+
+apply(dataSet, MARGIN = 2, FUN = function(x) sum(is.na(x)))
+apply(dataSet, MARGIN = 2, FUN = function(x) sum(x == "-", na.rm = T))
+apply(dataSet, MARGIN = 2, FUN = function(x) sum(x == "", na.rm = T))
+apply(dataSet, MARGIN = 2, FUN = function(x) sum(x == " ", na.rm = T))
+# Region ima prazan string, ali njega necemo koristiti u modelu, pa ga necemo sredjivati
+# Freedom ima NA vrednost, pa cemo je zameniti medijanom ili meanom
+
+# gledamo za Freedom
+shapiro.test(dataSet$Freedom)
+# nema normalnu raspodelu, menjamo medijanom
+medianFreedom <- median(dataSet$Freedom, na.rm = T)
+dataSet$Freedom[is.na(dataSet$Freedom)] <- medianFreedom
+
+
+# proveravamo outliere
+apply(dataSet[,3:13], 2, FUN = function(x) length(boxplot.stats(x)$out))
+# Government.Trust i Dystopia.Residual imaju 12 i 6 outliera
+
+boxplot(dataSet$Government.Trust, xlab = 'Goverment.Trust')
+boxplot(dataSet$Dystopia.Residual, xlab = 'Dystopia.Residual')
+# Goverment.Trust ima samo outliere sa ekstremno visokim vrednostima
+# Dystopia ima 1 outlier sa ekstremno visokom vrednoscu, ostale sa ekstremno niskim vrednostima
+
+# koristimo funckiju Winsorize iz paketa DescTools (nema u cheatsheetu)
+# kako bismo transformisali model i izbacili outliere
+# za velike vrednosti cemo koristiti 95ti percentil, a za male 5ti percentil
+# ovo nam je defaultno, ali ako ne budemo ovime izbacili sve outliere
+# onda moramo da promenimo percentile
+
+# install.packages('DescTools')
+library(DescTools)
+# ovde smo za donji percentil stavili 0 jer nemamo niske vrednosti
+# ali visoke cemo zameniti 95tim percentilom inicijalno
+# posle provere da li su nestali outlieri, videcemo da nisu
+# pa cemo pokusati opet sa 94. percentilom i na kraju
+# ce se nestati tek kad budemo iskoristili 92.5 percentil
+Goverment.Trust_w <- Winsorize(dataSet$Government.Trust, probs = c(0, 0.925))
+dataSet$Government.Trust <- Goverment.Trust_w
+# proveravamo da li smo izbacili outliere
+boxplot(dataSet$Government.Trust, xlab = 'Goverment.Trust') 
+# jesmo
+
+# Dystopia.Residual ima i preniske i previsoke vrednosti, pa cemo koristiti
+# i donji i gornji percentil ovaj put
+Dystopia.Residual_w <- Winsorize(dataSet$Dystopia.Residual, probs = c(0.05, 0.95))
+dataSet$Dystopia.Residual <- Dystopia.Residual_w
+boxplot(dataSet$Dystopia.Residual, xlab = 'Dystopia.Residual')
+# izbacili smo i ovde
+
+# zavrseno sredjivanje outliera
+
+
+
+# normalizacija i model i elbow
+# normalizaciju mozemo da radimo jer smo izbacili outliere
+
+normalize_var <- function( x ) {
+  if ( sum(x, na.rm = T) == 0 ) x
+  else ( (x - min(x, na.rm = T)) / (max(x, na.rm = T) - min(x, na.rm = T)) )
+}
+
+# normalizujemo numericke kolone
+data.norm <- as.data.frame(apply(dataSet[,3:13], 2, normalize_var))
+summary(data.norm)
+
+# nase varijable ne smeju da budu visoko korelisane jer ce to uticati
+# negativno na nas model, tako da proveravamo multikolinearnost
+data_cor <- cor(data.norm)
+
+library(corrplot)
+corrplot.mixed(data_cor)
+# vidimo da su nam Happiness.Rank, Happiness.Score, 
+# Lower.Confidence.Interval, Upper.Confidence.Interval,
+# Economy, Family, Life.Expectancy, Freedom i Dystopia.Residual 
+# visoko korelisani, pa cemo izbacivati jednu po jednu i videti sta se desava
+
+data.norm$Happiness.Rank <- NULL
+data.norm$Happiness.Score <- NULL
+data.norm$Lower.Confidence.Interval <- NULL
+data.norm$Upper.Confidence.Interval <- NULL
+# data.norm$Economy <- NULL
+
+data_cor <- cor(data.norm)
+corrplot.mixed(data_cor)
+
+
+# pravimo eval.metrics i k 2:8
+eval.metrics <- data.frame()
+
+# kmeans u cheatsheetu, direktno je ugradjena funkcija u R, ne vadimo iz paketa
+# moramo da navedemo koji numericki dataframe koristi, koliko klastera pravi,
+# max iteracija (da ne bi isao u nedogled) i koliko puta pozivamo algoritam
+# jer inicijalno moze da nam da losije pozicije klastera, pa moramo da ga izvrsimo
+# vise puta da bismo nasli sto bolje
+for(k in 2:8){
+  
+  set.seed(1010) # jer nasumicno biramo klastere
+  km <- kmeans(data.norm, centers = k, iter.max = 20, nstart = 1000)
+  
+  eval.metrics <- rbind(eval.metrics, c(k, km$tot.withinss, km$betweenss/km$totss))
+  # na postojeci sadrzaj dataframea, dodaj tot.withinss i ratio betweenss / totss
+  # withinss => suma kvadrata odstupanja observacija od centra njihovog klastera
+  # tot.withinss => suma withinss svih klastera
+  # between_SS => suma kvadrata odstupanja centara klastera od globalnog centra 
+  # total_SS => suma kvadrata odstupanja svake observacije od globalnog centra
+  
+}
+
+# dajemo nazive kolonama
+colnames(eval.metrics) <- c("clusters", "tot.withinss", "ratio")
+eval.metrics
+
+# crtamo krivu i gledamo gde je najveci prelom
+library(ggplot2)
+ggplot(data = eval.metrics, mapping = aes(x = 2:8, y = tot.withinss)) + 
+                  geom_line() + 
+                  geom_point()
+                  
+
+# mozemo da vidimo i tacnu brojku koliko se promenilo
+# ako iskoristimo funkciju compute.difference iz Utility.R
+source("Utility.R")
+diff_df <- apply(eval.metrics[,2:3], 2, compute.difference)
+diff_df
+
+# da bismo imali kolonu za k da znamo na sta se odnose ove vrednosti
+diff_df <- cbind(k = 2:8, diff_df)
+diff_df
+
+# u prvoj koloni smo dobili NA jer radimo razliku izmedju dve susedne vrednosti
+# 2. kolona predstavlja smanjenje tot.withinss kad je k+1
+# 3. kolona je povecanje racia za k+1
+
+# po ovom diff_df vidimo da je 3 najbolji broj klastera
+# jer ima najvecu razliku u odnosu na prethodni i za tot.withinss i za ratio
+
+sample.3k <- kmeans(x = data.norm, centers = 3, iter.max = 20, nstart = 1000)
+sample.3k
+# ovo pokazuje:
+
+# 3 klastera od 79, 49, 29 observacija
+
+# srednje vrednosti klastera po varijablama
+
+# clustering vector: koja observacija pripada kom klasteru
+# suma kvadrata odstupanja observacija od centra klastera (za svaki pise pojedinacno), 
+# sto manja to bolja jer je bliza centru klastera naravno
+# vidimo da 2. klaster najvise odstupa, sto je i logicno jer on ima
+# najvise observacija
+
+# withinss => suma kvadrata odstupanja observacija od centra njihovog klastera
+# between_SS => suma kvadrata odstupanja centara klastera od globalnog centra 
+# total_SS => suma kvadrata odstupanja svake observacije od globalnog centra
+# sto je ratio veci, to je bolji, u nasem slucaju je 43.2%
+# ako je veci ne znaci da cemo moci da interpretiramo rezultate
+# najbitnije je da krajnji rezultati budu razumljivi
+
+# pozivamo summary.stats iz Utility.R 
+# prvi parametar je dataset, drugi raspored po klasterima, a treci je broj klastera
+sum.stats <- summary.stats(data.norm, sample.3k$cluster, 3)
+sum.stats
+
+# mean pokazuje srednju vrednost, a SD nam je standardna devijacija,
+# odnosno odstupanje (disperzije) od centra
+# freq je broj zemalja, u prvom klasteru je 79, u drugom 49, broj u trecem je 29 zemalja,
+
+# imamo mali disbalans sto se tice klastera u pitanju njihove velicine
+
+# trazimo ono sto je specificno za svaki od ovih klastera
+
+# disperzije od centra su nam svuda slicne
+
+# primecujemo da treci klaster ima najvece vrednosti za sve osim za residual distopije
+# pa mozemo da zakljucimo da su sve varijable koje smo koristili korelisane
+# pa mozemo da kazemo da su zemlje u trecem klasteru bogatije, viseg statusa
+
+# drugi klaster ima malu vrednost za poverenje u vladu,
+# ali odstupa i u prosecnom broju clanova porodice, ocekivanom zivotnom veku
+# i BDP po glavi stanovnika jer su nizi u odnosu na druga dva klastera
+# pa mozemo reci da su zemlje u drugom klasteru siromasnije, nizeg statusa
+
+# vidimo da prvi klaster ima veoma malo poverenja u vladu, tu odstupa
+# a ostali rezultati su izmedju druga dva klastera, pa se moze
+# reci da su ove drzave srednjeg statusa
+
+# ovo je primer komentarisanja ovakvih rezultata, interpretirajte ih kako god
+# zelite samo da bude smisleno
+
+
+
+
+
+
+
+
+

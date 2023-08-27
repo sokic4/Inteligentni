@@ -1,0 +1,195 @@
+
+data <- read.csv("airbnb.csv", stringsAsFactors = F)
+
+str(data)
+
+# vraca listu elemenata
+strsplit(data$amenities, split = ",")
+# pretvara listu u vektor
+unlist(strsplit(data$amenities, split = ","))
+# vraca koliko odredjeni vektor ima elemenata
+length(unlist(strsplit(data$amenities[1], split = ",")))
+
+index <- c()
+
+# prosli smo kroz sve elemente dataseta i uzeli indeks observacija
+# koje imaju vise od 11 vrsta sadrzaja, i taj indeks dodali u vektor
+# koji smo iznad napravili
+for(x in 1:length(data$id)){
+  # print(length(unlist(strsplit(data$amenities[x], split = ","))))
+  ifelse(length(unlist(strsplit(data$amenities[x], split = ","))) > 11,
+                                  yes = index <- append(index, x), no = print("no"))
+}
+
+# pravimo dataset samo sa vrednostima koje zadovoljavaju gornji uslov
+data <- data[c(index), ]
+
+# pravimo subset koji nema NA vrednosti za review_scores_rating
+dataSub <- subset(data, !is.na(data$review_scores_rating))
+
+apply(dataSub, MARGIN = 2, FUN = function(x) sum(is.na(x)))
+apply(dataSub, MARGIN = 2, FUN = function(x) sum(x == "-", na.rm = T))
+apply(dataSub, MARGIN = 2, FUN = function(x) sum(x == "", na.rm = T))
+apply(dataSub, MARGIN = 2, FUN = function(x) sum(x == " ", na.rm = T))
+# vidimo da kolone bathrooms, bedrooms i beds imaju 6, 7 i 2 NA vrednosti respektivno
+# posto su to numericke varijable, radimo shapiro test i ako imaju
+# normalnu raspodelu, menjacemo ih srednjom vrednoscu, a ako nemaju, onda medijanom
+# (napomena: mozemo i prvo da pretvorimo u faktor, ali opet cemo dobiti iste vrednosti
+# tako da ne morate da se brinete)
+shapiro.test(dataSub$bedrooms)
+shapiro.test(dataSub$bathrooms)
+shapiro.test(dataSub$beds)
+medijanaBedrooms <- median(dataSub$bedrooms, na.rm = TRUE)
+medijanaBedrooms
+medijanaBathrooms <- median(dataSub$bathrooms, na.rm = TRUE)
+medijanaBathrooms
+medijanaBeds <- median(dataSub$beds, na.rm = TRUE)
+medijanaBeds
+
+# menjamo NA vrednosti medijanom te kolone
+dataSub$bedrooms[is.na(dataSub$bedrooms)] <- medijanaBedrooms
+dataSub$bathrooms[is.na(dataSub$bathrooms)] <- medijanaBathrooms
+dataSub$beds[is.na(dataSub$beds)] <- medijanaBeds
+
+str(dataSub)
+summary(dataSub)
+
+# izbacicemo varijable: 
+# id jer nece imati nikakav uticaj na izlaznu varijablu
+# name takodje
+# property_type jer nam nije numericka varijabla i sam tip akomodacije ne utice na cenu
+# amenities jer smo nju iskoristili za pravljenje novog dataseta
+dataSub$id <- NULL
+dataSub$name <- NULL
+dataSub$property_type <- NULL
+dataSub$amenities <- NULL
+
+# varijablu price cemo pretvoriti u numericku varijablu
+# ovo sam morao da uradim da bih pretvorio u numeric, izbacio sam dolar znak $
+dataSub$price <- gsub("[^0-9.]", "", dataSub$price)
+dataSub$price <- as.numeric(dataSub$price)
+
+medijanaPrice <- median(dataSub$price)
+medijanaPrice
+dataSub$expensive <- ifelse(dataSub$price > medijanaPrice, yes = "yes", no = "no")
+
+dataSub$expensive <- as.factor(dataSub$expensive)
+dataSub$price <- NULL
+
+summary(dataSub)
+
+# kad izvrsimo sledecu funkciju, pise nam za svaku varijablu
+# koliko ima outlajera
+apply(X = dataSub[,1:7], 2, FUN = function(x) length(boxplot.stats(x)$out))
+# posto ima outlajera moramo da uradimo standardizaciju
+# na koji nacin zavisi da li varijabla ima ili nema normalnu raspodelu
+apply(X = dataSub[,1:7], 2, FUN = function(x) shapiro.test(x))
+# nijedna nema normalnu raspodelu, standardizujemo na sledeci nacin
+
+# samo ove 4 kolone cemo da standardizujemo, jer ostale vec imaju mali opseg vrednosti
+# ako pokusamo da standardizujemo bedrooms, dobicemo INFINITE vrednosti jer imamo
+# i 0 (NULE) kao vrednosti, tako da preskacemo ove koje vec imaju nizak opseg vrednosti
+data.std <- apply(X = dataSub[,c(1,2,4:7)], 2, FUN = function(x) scale(x, center = median(x), scale = IQR(x)))
+data.std <- as.data.frame(data.std)
+
+# dodajemo ostale kolone u standradizovani dataset
+# data.std$bathrooms <- dataSub$bathrooms
+data.std$bedrooms <- dataSub$bedrooms
+# data.std$beds <- dataSub$beds
+data.std$expensive <- dataSub$expensive
+
+summary(data.std)
+
+# zavrsili smo sa standardizacijom, sada pravimo trening i test setove
+
+library(caret)
+set.seed(1010)
+indexes <- createDataPartition(data.std$expensive, p = 0.8, list = FALSE)
+train.data <- data.std[indexes, ]
+test.data <- data.std[-indexes, ]
+
+# krosvalidacija za 10 iteracija
+library(e1071)
+library(caret)
+numFolds <- trainControl(method = "cv", number = 10) 
+# za sledecu funkciju smo izabrali neparne brojeve od 3 do 25
+# jer nam je K koliko najblizih vrednosti gledamo
+# i mora da bude neparan da bi jedna klasa bila dominantnija
+# u odnosu na drugu
+kGrid = expand.grid(.k = seq(from = 3, to = 25, by = 2))
+# OBAVEZNO SET.SEED !!!
+# funkcija ispod je kao rpart kod klasifikacionih stabala
+# samo za method pisemo knn, za trControl numFolds koji smo dobili iznad
+# i za tuneGrid kGrid koji smo dobili iznad
+
+set.seed(1010)
+# KUCAS "train(" U CHEATSHEETU
+knn.cv <- train(x = train.data[,-8],
+                y = train.data$expensive,
+                method = "knn",
+                trControl = numFolds,
+                tuneGrid = kGrid)
+
+knn.cv
+plot(knn.cv)
+# dobili smo da je najbolji value za k = 19, to mozemo uzeti linjom koda ispod
+
+best_k <- knn.cv$bestTune$k
+
+# pravimo model sa najboljom k vrednoscu
+library(class)
+knn.pred <- knn(train = train.data[,-8], # training data without the output (class) variable
+                test = test.data[,-8], # test data without the output (class) variable
+                cl = train.data$expensive, # output (class) variable is specified here
+                k = best_k)
+
+# Yes nam je pozitivna klasa
+getEvaluationMetrics <- function(cm){
+  
+  TP <- cm[2,2]
+  TN <- cm[1,1]
+  FP <- cm[1,2]
+  FN <- cm[2,1]
+  
+  accuracy <- sum(diag(cm)) / sum(cm)
+  precision <- TP / (TP + FP)
+  recall <- TP / (TP + FN)
+  F1 <- (2*precision*recall) / (precision + recall)
+  
+  c(Accuracy = accuracy, 
+    Precision = precision, 
+    Recall = recall, 
+    F1 = F1)
+  
+}
+
+# predvidjamo vrednosti
+knn.cm <- table(true = test.data$expensive, predicted = knn.pred)
+knn.cm
+# model nam izgleda veoma dobro, veliku vecinu vrednosti smo
+# predvideli tacno, kao sto vidimo po glavnoj dijagonali
+# vidimo da ce nam biti veci accuracy i da cemo imati precision nesto bolji od recalla
+
+# racunamo metrike
+knn.eval <- getEvaluationMetrics(knn.cm)
+knn.eval
+
+# accuracy = procenat tacnih predikcija, ovde smo od ukupnog broja observacija
+# u test setu, sto je 413, tacno predvideli 271, pa nam je tacnost malo niza, 0.656
+
+# precision = udeo onih koje smo predvideli da su pozitivne koje su stvarno pozitivne
+# ovde smo od 192 observacije za koje smo rekli da imaju skup smestaj, 
+# pogodili 128 da jesu skupi,
+# ali smo za 64 pogresili, rekli da su skupi, a zapravo nisu, pa nam je precision 0.667
+
+# recall = udeo observacija koje su stvarno pozitivne koje smo predvideli da su pozitivne
+# ovde smo od 206 skupih smestaja, tacno predivdeli 128, a za 78 smo rekli da je nisu skupi
+# umesto da jesu, pa smo dobili nesto manji recall od precisiona, 0.621
+
+# F1 = sluzi za evaluaciju modela kada su precision i recall u balansu, 
+# govori koliko je dobar model, ovde nam je vrednost F1 statistike 0.643
+
+
+
+
+

@@ -1,0 +1,288 @@
+# DRVO ODLUCIVANJA JE TIP ALGORITMA KOJI RADI SA SVIM VARIJABLAMA !
+
+# prvo moramo da ucitamo dataset nakon sto ga stavimo u root folder
+data <- read.csv("travel-times.csv", stringsAsFactors = FALSE)
+
+# gledamo strukturu dataseta
+str(data)
+summary(data)
+
+# prima dataset, MARGIN = 2 znaci da se izvrsava nad kolonama i FUN je koja funkcija
+apply(data, MARGIN = 2, FUN = function(x) sum(is.na(x)))
+apply(data, MARGIN = 2, FUN = function(x) sum(x == "-", na.rm = T))
+apply(data, MARGIN = 2, FUN = function(x) sum(x == "", na.rm = T))
+apply(data, MARGIN = 2, FUN = function(x) sum(x == " ", na.rm = T))
+
+# nijedna varijabla nema NA vrednosti
+# varijable FuelEconomy, GoingTo i Comments imaju prazne stringove 
+# i varijablama FuelEco i GoingTo cemo te stringove zameniti NA vrednostima
+# varijablu Comments, zbog prevelikog broja nedostajucih 
+# vrednosti treba ukloniti jer je irelevantna za nas model
+# ostace privremeno radi potrebe za neki od narednih koraka
+
+str(data)
+
+# uklanjanje nedostajucih vrednosti
+# proveravamo koje od karakter tipova podataka mozemo da pretvorimo
+# u factor (kategoricke) varijable
+table(data$GoingTo)
+table(data$DayOfWeek)
+table(data$FuelEconomy)
+
+# vidimo da GoingTo ima samo dve kategorije: Work i Home
+# DayOfWeek ima 5 za sve radne dane u nedelji
+# FuelEconomy je character varijabla, ali treba je pretvoriti u 
+# numericku
+
+# mozemo i length unique da koristimo da bismo videli koliko
+# razlicitih vrednosti ima neka varijabla i sve one character varijable
+# koje imaju previse razlicitih vrednosti necemo pretvarati u faktor
+length(unique(data$GoingTo))   # moze faktor
+length(unique(data$DayOfWeek)) # moze faktor
+length(unique(data$Date))      # ne moze faktor (uklanjamo kasnije)
+length(unique(data$StartTime)) # ne moze faktor (uklanjamo kasnije)
+
+# ovako mozemo da vidimo koliko su procentualno zastupljenje vrednosti
+# ako nam nekad bude bilo potrebno: 
+# prop.table(table(data$GoingTo))
+
+# kao sto vidimo:
+
+# GoingTo ima samo 2 vrednosti:  Home i Work, svaku "" ili "-" vrednost
+# u GoingTo koloni cemo svaku nedostajucu vrednost pretvoriti u onu koja je vise zastupljena. 
+# Home ima 97, a Work 103 vrednosti
+# tako da cemo sve nedostajuce vrednosti pretvoriti u Work
+
+data$GoingTo[data$GoingTo == ""] <- "Work"
+data$GoingTo <- as.factor(data$GoingTo)
+
+# DayOfWeek ima 5 vrednosti, uvek kada imamo mali broj vrednosti
+# tu varijablu mozemo da pretvorimo u factor varijablu 
+# (ovde nemamo nikakvu NA vrednost, pa direktno pretvaramo u factor)
+
+# data$DayOfWeek <- as.factor(data$DayOfWeek)
+data$DayOfWeek <- factor(data$DayOfWeek, levels = c("Monday","Tuesday","Wednesday","Thursday","Friday"))
+class(data$DayOfWeek)
+levels(data$DayOfWeek)
+
+# FuelEconomy nam nije factor varijabla, ima previse razlicitih vrednosti
+# i po vrednostima vidimo da nju treba da pretvorimo
+# u numericku varijablu
+
+# sad sredjujemo FuelEconomy
+
+data$FuelEconomy[data$FuelEconomy == "" | data$FuelEconomy == "-"] <- NA
+sum(is.na(data$FuelEconomy)) # svih 19 smo pretvorili u NA vrednosti
+
+data$FuelEconomy <- as.numeric(data$FuelEconomy)
+class(data$FuelEconomy) # proveravamo da li smo pretvorili FuelEconomy u numericku
+
+# radimo shapiro wilk test da vidimo da li varijabla ima ili nema normalnu raspodelu
+shapiro.test(data$FuelEconomy)
+# nema normalnu raspodelu jer je p-value < 0.05, pa je sve nedostajuce vrednosti menjamo medijanom
+
+medijanaFuelEco <- median(data$FuelEconomy, na.rm = TRUE)
+medijanaFuelEco
+data$FuelEconomy[is.na(data$FuelEconomy)] <- medijanaFuelEco
+
+# dobili smo medijanu 8.52 i sve NA vrednosti u FuelEconomy smo zamenili njom
+
+#############################
+#### OVDE SMO ZAVRSILI SREDJIVANJE PODATAKA
+#############################
+
+# kreiramo izlaznu varijablu
+data$Take407All <- ifelse(data$Congestion407 < 0.61 
+                             & data$Comments == "", yes = "Yes", no = "No")
+data$Take407All <- factor(data$Take407All)
+
+# izbacujemo varijable koje smo koristili za formiranje nove izlazne varijable
+data$Congestion407 <- NULL
+data$Comments <- NULL
+
+# pokazuje prvih 6 vrednosti, tail() pokazuje poslednjih 6
+head(data$Take407All)
+
+# koliko ih ima
+table(data$Take407All)
+
+# procentualno
+prop.table(table(data$Take407All))
+# znaci u 83% slucaja ne treba ici autoputem, a u 17% treba
+# treba da napravimo model koji ce da predvidi da li idemo autoputem ili ne
+
+str(data)
+
+data$Date <- NULL
+data$StartTime <- NULL
+# smatrao sam da su nam nepotrebne varijable Date i StartTime
+# uvek kada izbacujemo varijable koje smatramo da nisu potrebne za nas model
+# navodimo zbog cega, to moze da bude bilo sta sto vam padne na pamet
+# npr. datum i pocetak voznje nisu relevantni
+# za nas model jer nece uticati na izlaznu varijablu Take407All ni u kakvom smislu
+
+str(data)
+
+# sredili smo sve podatke, sada kreiramo trening i test set
+
+# install.packages('caret')
+library(caret)
+
+set.seed(1010)
+indexes <- createDataPartition(data$Take407All, p = 0.8, list = FALSE)
+train.data <- data[indexes, ] # svi oni koji se nalaze u tih 80%
+test.data <- data[-indexes, ] # svi oni koji se NE nalazed u tih 80%, ostalih 20%
+
+# sada kreiramo klasifikaciono stablo
+
+library(rpart)
+tree1 <- rpart(Take407All ~ ., 
+                data = train.data,
+                method = "class")
+tree1
+
+# kao sto vidimo, uzeo je samo MovingTime kao najdominantniji prediktor
+
+library(rpart.plot)
+rpart.plot(tree1, extra = 104) # extra 104 pokazuje brojke na odredjen nacin
+
+# sledece sto radimo je pravimo predikciju
+tree1.pred <- predict(tree1, newdata = test.data, type = "class")
+
+# sada pravimo matricu konfuzije
+
+# na glavnoj dijagonali matrice konfuzije nam se nalazi broj tacnih
+# predikcija, a na sporednoj broj pogresnih predikcija 
+tree1.cm <- table(true = test.data$Take407All, predicted = tree1.pred)
+tree1.cm
+
+# vidimo da ce nam metrike biti dobra, a da 
+# je precision fantastican, 100% smo pozitivnih klasa 
+# smo predvideli da su pozitivne
+
+
+# Dobili smo matricu konfuzije
+# TP (True Positive), TN (True Negative), FP (False Positive), FN (False Negative)
+# Nama je u zadatku dato da je YES pozitivna klasa
+# U prvoj zagradi pise kako su rasporedjeni TP, TN, FP, FN kada je NO pozitivna
+# A u drugoj kako su rasporedjeni kada je YES pozitivna klasa
+#         predicted
+#         NO           YES
+# true
+# NO      34 (TP) (TN)   0 (FN) (FP)
+# YES     2  (FP) (FN)   5 (TN) (TP)
+
+# napisemo funkciju za evaluaciju i odradimo je na cm
+# OVO TAKODJE SAMI UCITE DA PISETE! 
+# ISPOD JE PRIMER KAD JE YES POZITIVNA KLASA
+# KAD JE NO ONDA OBRNEMO INDEKSE, STAVIO SAM ISPOD
+getEvaluationMetrics <- function(cm) {
+  # levo je kad je YES pozitivna
+  # desno je kad je NO pozitivna
+  TP <- cm[2,2] # cm[1,1]
+  TN <- cm[1,1] # cm[2,2]
+  FP <- cm[1,2] # cm[2,1]
+  FN <- cm[2,1] # cm[1,2]
+  
+  accuracy <- sum(diag(cm)) / sum(cm) # tacno predvidjene / sve
+  precision <- TP / (TP + FP)      # tacno predvidjenje pozitivne / sve predvidjene pozitivne (prva kolona ili druga u zavisnosti od pozitivne klase)
+  recall <- TP / (TP + FN)         # tacno predvidjenje pozitivne / prvi ili drugi red u zavisnosti od pozitivne klase
+  F1 <- (2 * precision * recall) / (precision + recall)
+  
+  c(Accuracy = accuracy, 
+    Precision = precision, 
+    Recall = recall, 
+    F1 = F1)
+  
+}
+
+eval.tree1 <- getEvaluationMetrics(tree1.cm) 
+eval.tree1
+# accuracy = procenat tacnih predikcija, ovde smo od ukupnog broja observacija
+# u test setu, sto je 41, tacno predvideli 39, pa nam je tacnost visoka
+
+# precision = udeo onih koje smo predvideli da su pozitivne koje su stvarno pozitivne
+# ovde smo sve stvarno pozitivne predvideli da su pozitivne, odnosno nijednom
+# nismo pogresili da treba da se ide autoputem, a da zapravo ne treba
+
+# recall = udeo observacija koje su stvarno pozitivne koje smo predvideli da su pozitivne
+# ovde od ukupno 7 pozitivnih smo predvideli da ih ima 5, tako da smo pogodili 5/7
+# za 5 smo rekli da se ide autoputem od ukupno 7 gde treba
+# zato nam je recall 0.7142857
+
+# F1 = sluzi za evaluaciju modela kada su precision i recall u balansu, 
+# govori koliko je dobar model, u nasem slucaju je 0.833, pa mozemo da 
+# zakljucimo da jeste dobar
+
+##################################
+##################################
+
+# poslednji deo cross validacija: kucaj <folds> u cheatsheetu
+library(e1071)
+library(caret)
+
+# radimo 10-fold crossvalidation
+numFolds <- trainControl(method = "cv", number = 10) 
+
+# gledamo koja je cp vrednost se pokazala najbolje za nas model
+cpGrid <- expand.grid(.cp = seq(from = 0.001, to = 0.05, by = 0.001)) 
+
+set.seed(1010)
+crossvalidation <- train(x = train.data[,-10],
+                         y = train.data$Take407All,
+                         method = "rpart", 
+                         trControl = numFolds, # numFolds sto smo dobili iznad
+                         tuneGrid = cpGrid) # cpGrid sto smo dobili iznad
+
+crossvalidation
+
+# dobili smo da je najbolji cp = 0.05, to cemo iskoristiti za nase novo drvo
+# pa uporediti vrednosti
+plot(crossvalidation)
+
+# direktno uzimamo cp iz krosvalidacije
+cpValue <- crossvalidation$bestTune$cp
+
+# prune nam smanjuje nase drvo i pravi jednostavniji model
+# poenta je da napravimo sto jednostavnije drvo sa sto
+# boljim evaluacionim metrikama
+# prune prima kao parametre staro drvo i novi cp
+# a cp koji smo dobili krosvalidacijom je 0.05
+# posle toga samo  napravimo novu predikciju za nase novo stablo
+# napravimo novu matricu konfuzije, izracunamo metrike
+# i uporedjujemo sa vrednostima prethodnog ili prethodnih stabala
+# u ovom slucaju necemo raditi prune, jer je nase drvo vec najjednostavnije
+# moguce, zato cemo napraviti novo samo sa drugom vrednoscu complexity parametra
+# tree2 <- prune(tree1, cp = cpValue)
+tree2 <- rpart(Take407All ~ ., 
+               data = train.data,
+               method = "class", 
+               control = rpart.control(cp = cpValue))
+
+# pravimo predickije
+tree2.pred <- predict(tree2, newdata = test.data, type = "class")
+
+# pravimo konfuzionu matricu za drugi model
+tree2.cm <- table(true = test.data$Take407All, predicted = tree2.pred) # OVO NEMA U CHEATSHEETU
+tree2.cm
+
+# dobili smo isto, tako da ce nam vrednosti metrika biti totalno iste
+
+eval.tree2 <- getEvaluationMetrics(tree2.cm)
+
+eval.tree1
+eval.tree2
+
+# sa sledecom linijom koda ispisujemo i uporedjujemo vrednosti na lep nacin
+data.frame(rbind(eval.tree1, eval.tree2), row.names = c("prvi","drugi"))
+
+# kao sto vidimo, nase metrike se nisu promenile
+# tako da je nas prvi model zapravo bio savrsen
+# da su drugacije metrike samo biste ih prokomentarisali
+# i rekli koji model je na kraju bolji
+
+
+
+
+
+

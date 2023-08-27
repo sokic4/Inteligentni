@@ -1,0 +1,324 @@
+# RADI SAMO SA NUMERICKIM PODACIMA!
+# IZLAZNA VARIJABLA JE NUMERICKA!
+
+# da je pisalo da treba da se ucita iz ISLR paketa onda treba
+# install.packages('ISLR')
+# library(ISLR)
+# str(imeDataSeta)
+# dataSet <- imeDataSeta
+
+data <- read.csv("Video_Games_Sales_2017_reduced.csv", stringsAsFactors = F)
+
+tempSub <- subset(data, (data$Platform == "PS2" 
+                         | data$Platform == "PS3" | data$Platform == "PS4"))
+
+rm(data)
+
+str(tempSub)
+
+# prvo sredjujemo izlaznu varijablu, moramo da obrisemo sve nedostajuce vrednosti
+# jer moramo da izvrsimo predvidjanje nad postojecim podacima!
+sum(is.na(tempSub$User_Score))
+sum(tempSub$User_Score == "", na.rm = T)
+sum(tempSub$User_Score == "-", na.rm = T)
+sum(tempSub$User_Score == " ", na.rm = T)
+table(tempSub$User_Score)
+
+# vidimo da imamo prazne stringove i 'tbd' tako da cemo to pretvoriti u NA vrednosti
+# i izbaciti iz naseg dataseta koji koristimo za model!
+tempSub$User_Score[tempSub$User_Score == "" | tempSub$User_Score == "tbd"] <- NA
+
+# vraca samo redove koje nemaju NA vrednosti za 13. kolonu, odnosno nasu
+# izlaznu varijablu User_Score
+dataSub <- tempSub[complete.cases(tempSub[,13]), ]
+
+rm(tempSub)
+
+# ubacili su N/A vrednosti takodje (za Year_of_Release npr.)
+# to sam video zato sto sam izvrsio table(dataSub$Year_of_Release)...
+# ne znam da li kazu na ispitu
+apply(dataSub, MARGIN = 2, FUN = function(x) sum(is.na(x)))
+apply(dataSub, MARGIN = 2, FUN = function(x) sum(x == "", na.rm = T))
+apply(dataSub, MARGIN = 2, FUN = function(x) sum(x == "N/A", na.rm = T))
+apply(dataSub, MARGIN = 2, FUN = function(x) sum(x == "-", na.rm = T))
+apply(dataSub, MARGIN = 2, FUN = function(x) sum(x == " ", na.rm = T))
+# varijable Critic_Score, Critic_Count imaju po 174 NA vrednosti
+
+# varijable Developer i Rating imaju 2 i 17 praznih stringova respektivno
+
+# Year_of_release ima 25 N/A vrednosti i Publisher 1
+
+length(unique(dataSub$Name))
+length(unique(dataSub$Publisher))
+length(unique(dataSub$Developer))
+
+length(unique(dataSub$Rating))
+length(unique(dataSub$Platform))
+length(unique(dataSub$Genre))
+
+# varijable Name, Publisher i Developer cemo izostaviti iz 
+# daljeg istrazivanja jer imaju previse razlicitih vrednosti
+# pa ih ne mozemo transformisati u faktor varijable
+
+dataSub$Name <- NULL
+dataSub$Publisher <- NULL
+dataSub$Developer <- NULL
+
+str(dataSub)
+
+# sredicemo year_of_release jer ima N/A vrednosti
+# sredicemo critic_score i critic_count jer imaju NA vrednosti
+# sredicemo rating jer ima prazne stringove
+
+# YEAR OF RELEASE IMA N/A VREDNOSTI
+# i trenutno je character varijabla, pa cemo je pretvoriti u factor, pa u numeric
+# isto tako cemo uraditi za User_Score koji ima prazne stringove
+
+# Year_of_release necemo transformisati direktno u numericku, vec prvo u faktorsku
+# jer imati nivo za svaku godinu, pa tek onda u numericku
+sort(table(dataSub$Year_of_Release))
+dataSub$Year_of_Release[dataSub$Year_of_Release == "N/A"] <- "2004"
+dataSub$Year_of_Release <- as.numeric(as.factor(dataSub$Year_of_Release))
+
+# rating
+sort(table(dataSub$Rating))
+dataSub$Rating[dataSub$Rating == ""] <- "T"
+dataSub$Rating <- as.numeric(as.factor(dataSub$Rating))
+
+# genre
+dataSub$Genre <- as.numeric(as.factor(dataSub$Genre))
+
+
+# platform
+dataSub$Platform <- as.numeric(as.factor(dataSub$Genre))
+
+# mozete da stavite i redni broj kolone umesto nazive varijabli u sledecoj liniji
+apply(dataSub[,c("Critic_Score", "Critic_Count")], 2, FUN = function(x) shapiro.test(x))
+# nedostajuce vrednosti numerickih varijabli menjamo srednjom vrednoscu
+# ako imaju normalnu raspodelu, a medijanom ako nemaju
+# nijedna nema normalnu raspodelu, pa ih menjamo njihovom medijanom
+
+medianCriticScore <- median(dataSub$Critic_Score, na.rm = T)
+medianCriticCount <- median(dataSub$Critic_Count, na.rm = T)
+
+dataSub$Critic_Score[is.na(dataSub$Critic_Score)] <- medianCriticScore
+dataSub$Critic_Count[is.na(dataSub$Critic_Count)] <- medianCriticCount
+
+dataSub$User_Score <- as.numeric(dataSub$User_Score)
+
+str(dataSub)
+
+# sad su nam sve varijable numericke i izbacili smo nepotrebne
+# zavrseno sredjivanje
+
+# sad gledamo korelacije
+library(corrplot)
+matrica <- cor(dataSub)
+matrica[,11] # izabrali smo 11. kolonu/varijablu User_Score
+corrplot(matrica, method = "number", type = "upper", diag = FALSE)
+# jedini koeficijent korelacije koji se moze smatrati od znacaja
+# u odnosu na User_Score je Critic_Score = 0.49,
+# ostale su sve slabo korelisane
+# (nema pravila koji stepen korelacije birate, uvek gledate relativno 
+# u odnosu zadatak, mogu i da vam kazu npr. da gledate stepen korelacije
+# koji je veci od 0.6)
+# ovde vidimo da je jedino relevantno Critic_Score,
+# ostali stepeni korelacije su niski
+# takodje, kad izaberemo varijable koje su nam relevantne
+# moramo da izbegnemo ulazne varijable (ove koje koristimo kao prediktore)
+# koje su medjusobno visoko korelisane, onda cemo samo jednu po jednu izbacivati (videcete kad budemo radili VIF)
+# to radimo jer kad su medjusobno visoko korelisane, onda ce uticati na model u losem smislu
+
+# pravimo trening i test setove
+library(caret)
+set.seed(1010)
+indexes <- createDataPartition(dataSub$User_Score, p = 0.8, list = FALSE)
+train.data <- dataSub[indexes, ]
+test.data <- dataSub[-indexes, ]
+
+# pravimo model
+# sad za lm uzimamo samo ove koje imaju jacu korelaciju, 
+# u ovom slucaju samo Critic_Score
+lm1 <- lm(User_Score ~ Critic_Score, data = train.data)
+summary(lm1)
+# za svako povecanje Critic_Score povecava nam se User_Score za 0.056 poena
+# izgled linearne krive y = 3.246993 + 0.056x
+# max zvezdica je 3, sto veci broj zvezdica, to je znacajnija predikcija
+# intercept znaci kolika bi vrednost bila da su svi prediktori 0 (nije uvek realno)
+# residual predstavlja razliku izmedju stvarnih i predvidjenih vrednosti
+# i ovde iznosi 1.264
+# r-squared znaci da nas model objasnjava 24.42% varijabilieteta zavisne promenljive User_Score
+# f-statistika je 431.6, a p-value < 0.05, dakle postoji zavisnost izmedju 
+# zavisne promenljive i prediktora i ima smisla razmatrati ovaj nas model
+
+# sad proveravamo multikolinearnost, kolonearnost izmedju prediktora
+# ne smemo da uzmemo 2 varijable koje imaju visoku kolinearnost
+# OVO RADI AKO IMA 2 ILI VISE VARIJABLI, OVDE IMA SAMO JEDNA, PA NECE RADITI
+# install.packages("car")
+library(car)
+vif(lm1) # variance inflation factor
+# ovde imamo samo jednu varijablu, Critic_Score, pa nece raditi !
+
+
+##############################################
+##############################################
+# OVAJ MODEL BEZ LIMITA, MOZETE DA 
+# GA URADITE DA BISTE VIDELI DA LI JOS NESTO DA UBACITE U MODEL
+# ODNOSNO DA LI MOZETE DA NAPRAVITE BOLJI MODEL
+
+# sad pravimo novi model bez limita
+# inace ovde ubrajate sve varijable, ali ja sam iz nekog razloga
+# dobio sve NA vrednosti za Genre i ne znam zasto, zato sam je i izbacio
+# jer posle ne radi vif(lm2)
+lm2 <-  lm(User_Score ~ . - Genre, data = train.data)
+summary(lm2)
+# varijable koje se mogu smatrati od znacaja su 
+# Platform, YearOfRelease, Critic_Score i Rating
+# residual predstavlja razliku izmedju predvidjenih i stvarnih vrednosti
+# i ovde iznosi 1.133
+# r-squared, nas model opisuje 39.68% varijabilieteta zavisne promenljive
+# povecao nam se, sto je logicno, povecava se sto vise prediktora imamo u modelu
+# f-statistika je 79.3, a p-value < 0.05, dakle postoji zavisnost izmedju 
+# ovih varijabli
+
+# OVDE IMA VISE VARIJABLI PA RADIMO PROVERU MULTIKOLINEARNOSTI
+# install.packages("car")
+library(car)
+vif(lm2)
+sqrt(vif(lm2))
+sort(sqrt(vif(lm2))) # sortiramo da bude preglednije
+
+# varijable koje imaju sqrt(vif(lm)) veci od 2 su problematicne
+# postoji velika kolinearnost izmedju varijabli JP_Sales, Other_Sales, EU_Sales, 
+# NA_Sales i Global_Sales
+# izbacujemo jednu po jednu, pa gledamo kako se nas model menja
+
+# ova linija koda nam pokazuje koeficijente za nase prediktore
+coef(lm2)
+
+# sve osim Global_Sales
+lm3 <- lm(User_Score ~ . - (Genre + Global_Sales),
+           data = train.data)
+summary(lm3)
+sort(sqrt(vif(lm3)))
+# eto, izbacivanjem Global_Sales je ostao isti R-squared i skoro isti residual 
+# i takodje nemamo vise vrednost preko 2 kad uradimo sort(sqrt(vif(lm3)))
+# a i vidimo da nam EU_Sales sada postaje znacajna varijabla
+
+# takodje, mozemo da izbacimo varijable koje se ne smatraju znacajnim, ove bez zvezdica
+# i sa jednom zvezdicom
+
+lm4 <- lm(User_Score ~ Platform + Year_of_Release + EU_Sales + JP_Sales + Critic_Score + Rating,
+           data = train.data)
+summary(lm4)
+sort(sqrt(vif(lm4)))
+
+# vidimo da su nam ovde sve varijable od znacaja
+# residual predstavlja razliku izmedju predvidjenih i stvarnih vrednosti
+# i ovde iznosi 1.136
+# r-squared, nas model opisuje 39.16% varijabilieteta zavisne promenljive
+# smanjio nam se jer imamo manje prediktora nego u prethodnom modelu
+# f-statistika je 142.8, a p-value < 0.05, dakle postoji zavisnost izmedju 
+# ovih varijabli
+
+
+#####################################################
+#####################################################
+
+
+# pravimo 4 plota
+graphics.off()
+par(mfrow = c(1,1)) # da imamo samo 1 red i 1 kolonu za grafove
+par(mfrow = c(2,2)) # da imamo 2 reda i 2 kolone za grafove
+plot(lm4)
+
+# Prva slika govori koliko je prepostavka o linearnosti zadovoljenja, 
+# predikcija se moze smatrati merodavnom jer je crvena linija blizu 
+# toga da bude ravna, odnosno tackice su blizu toga da budu jednako rasporedjene
+# Residuals su reziduali (razlika izmedju stvarnih i predvidjenih vrednosti)
+# a fitted values predvidjene vrednosti 
+# ovde se tezi da reziduali budu 0, tako da sto je crvena linija
+# bliza 0, to je nas model bolji
+# u nasem slucaju pretpostavka linearnosti nije zadovoljavajuca
+
+# druga slika govori o tome da li su reziduali normalno rasporedjeni
+# U ovom slucaju nisu jer u pocetku odstupaju u odnosu na isprekidanu liniju
+
+# treca slika proverava da li rezidulali imaju jednake 
+# varijanse (homoskedasticnost), ukoliko imamo horizontalnu liniju
+# bilo gde na plotu, znaci da imaju
+# kod nas nije skroz horizontalna, tako da se moze reci da se razlikuju
+
+# cetvrta da li ima observacija sa veoma velikim/malim vrednostima 
+# tj. ekstemnim vrednostima, Kukova distanca nam je preko isprekidanih crvenih linija
+# ako je neka observacija preko te linije, znaci da imamo ekstremne vrednosti
+# ovde nemamo varijable koje su van isprekidane linije
+# ako kucate plot(lm3) videcete
+# da imamo neke koje su blizu Kukove distance, ali ne preko
+# tako da nece praviti problem
+# da ih imamo, te vrednosti van Kukove distance ce uticati na model u losem smislu
+
+# nas model ne ispunjava idealne uslove, ali je prihvatljiv
+
+lm4.pred <- predict(lm4, newdata = test.data)
+head(lm4.pred)
+head(test.data$User_Score)
+
+# mozete da da koristite ovaj ggplot, ali nije neophodno
+test.data$User_Score_pred <- lm4.pred
+
+library(ggplot2)
+ggplot(test.data) +
+    geom_density(aes(x = User_Score, color = 'actual')) +
+  geom_density(aes(x = User_Score_pred, color = 'predicted'))
+
+# vidimo da je samo u tacki 7.5 model izuzetno omanuo
+
+# RSS = Residual Sum of Squares
+# TSS = Total Sum of Squares
+# sve ovo ispod je u cheatsheetu !!!
+
+# residual je razlika izmedju stvarne i predvidjene vrednosti,
+# nju sumiramo i kvadriramo da bismo dobili RSS:
+RSS <- sum((lm4.pred - test.data$User_Score)^2)
+
+# razlika izmedju vrednosti u testu i srednje vrednosti u trainu,
+# nju sumiramo i kvadriramo da bismo dobili TSS
+TSS <- sum((mean(train.data$User_Score) - test.data$User_Score)^2)
+
+# ovo je formula za RSQUARED
+rsquared <- 1 - RSS / TSS
+rsquared
+# ukupan objasnjeni varijabilitet je 36.79%
+
+
+summary(lm4)
+# uporedjujemo sa rsquared nad trainom i nad testom i vidimo 
+# da je veca na trainu
+# ukupan objasnjeni varijabilitet je 36.79%, a na trainu je 39.16%
+
+# RMSE = Root Mean Squared Error, koliku gresku pravimo s predikcijama
+# RSS / broj observacija u test setu
+RMSE <- sqrt(RSS/nrow(test.data))
+RMSE
+
+# pravimo gresku 1.219 poena za izlaznu varijablu User_Score
+
+# OVO NEMA U CHEATSHEETU !
+mean(test.data$User_Score) # mean, srednja vrednost nam je 7.3 poena
+RMSE/mean(test.data$User_Score)
+# greska iznosi 17.07% od srednje vrednosti poena, sto govori da nam je model
+# solidan
+
+# NAPOMENA:
+# MOZETE DA NAPRAVITE VISE LM - LINEARNIH MODELA I UPOREDJIVATI 
+# KOJI JE BOLJI
+# POENTA ZADATKA JE KORISCENJE FUNKCIJA, PRAVLJENJE MODELA
+# I PISANJE STO VISE KOMENTARA U KONTEKSTU ZADATKA
+# DA BI ONI VIDELI DA VI RAZUMETE STA RADITE
+
+
+
+
+
+
