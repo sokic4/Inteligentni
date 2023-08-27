@@ -1,0 +1,193 @@
+package com.sample
+ 
+import com.sample.Osiguranje;
+ 
+rule "Uslov 1"
+    when
+        o : Osiguranje( snaga <= 40, osnovnaCena == 0 )
+    then
+    	o.setOsnovnaCena(10000);
+        update( o );
+end
+
+rule "Uslov 2"
+    when
+        o : Osiguranje( snaga > 40, snaga <= 50, osnovnaCena == 0 )
+    then
+    	o.setOsnovnaCena(11000);
+        update( o );
+end
+
+rule "Uslov 3"
+    when
+        o : Osiguranje( snaga > 50, snaga <= 75, osnovnaCena == 0 )
+    then
+    	o.setOsnovnaCena(15000);
+        update( o );
+end
+
+rule "Uslov 4"
+    when
+        o : Osiguranje( snaga > 50, osnovnaCena == 0 )
+    then
+    	o.setOsnovnaCena(25000);
+        update( o );
+end
+
+rule "Uslov 5a"
+    when
+        o : Osiguranje( premijskiStepenPre == 1, (osnovnaCena == 10000 || osnovnaCena == 11000 || osnovnaCena == 15000 || osnovnaCena == 25000) )
+    then
+    	o.setOsnovnaCena(o.getOsnovnaCena() * 0.85);
+        update( o );
+end
+
+rule "Uslov 5b"
+    when
+        o : Osiguranje( premijskiStepenPre == 2, (osnovnaCena == 10000 || osnovnaCena == 11000 || osnovnaCena == 15000 || osnovnaCena == 25000) )
+    then
+    	o.setOsnovnaCena(o.getOsnovnaCena() * 0.9);
+        update( o );
+end
+
+rule "Uslov 5c"
+    when
+        o : Osiguranje( premijskiStepenPre == 3, (osnovnaCena == 10000 || osnovnaCena == 11000 || osnovnaCena == 15000 || osnovnaCena == 25000) )
+    then
+    	o.setOsnovnaCena(o.getOsnovnaCena() * 0.95);
+        update( o );
+end
+
+rule "Uslov 5d"
+    when
+        o : Osiguranje( premijskiStepenPre == 5, (osnovnaCena == 10000 || osnovnaCena == 11000 || osnovnaCena == 15000 || osnovnaCena == 25000) )
+    then
+    	o.setOsnovnaCena(o.getOsnovnaCena() * 1.1);
+        update( o );
+end
+
+rule "Uslov 5e"
+    when
+        o : Osiguranje( premijskiStepenPre == 6, (osnovnaCena == 10000 || osnovnaCena == 11000 || osnovnaCena == 15000 || osnovnaCena == 25000) )
+    then
+    	o.setOsnovnaCena(o.getOsnovnaCena() * 1.3);
+        update( o );
+end
+
+rule "Uslov 5f"
+    when
+        o : Osiguranje( premijskiStepenPre == 7, (osnovnaCena == 10000 || osnovnaCena == 11000 || osnovnaCena == 15000 || osnovnaCena == 25000) )
+    then
+    	o.setOsnovnaCena(o.getOsnovnaCena() * 1.5);
+        update( o );
+end
+
+rule "Uslov 5g"
+    when
+        o : Osiguranje( premijskiStepenPre == 8, (osnovnaCena == 10000 || osnovnaCena == 11000 || osnovnaCena == 15000 || osnovnaCena == 25000) )
+    then
+    	o.setOsnovnaCena(o.getOsnovnaCena() * 1.7);
+        update( o );
+end
+
+rule "Uslov 5h"
+    when
+        o : Osiguranje( premijskiStepenPre == 9, (osnovnaCena == 10000 || osnovnaCena == 11000 || osnovnaCena == 15000 || osnovnaCena == 25000) )
+    then
+    	o.setOsnovnaCena(o.getOsnovnaCena() * 1.9);
+        update( o );
+end
+
+rule "Uslov 5i"
+    when
+        o : Osiguranje( premijskiStepenPre == 10, (osnovnaCena == 10000 || osnovnaCena == 11000 || osnovnaCena == 15000 || osnovnaCena == 25000) )
+    then
+    	o.setOsnovnaCena(o.getOsnovnaCena() * 2.1);
+        update( o );
+end
+
+rule "Uslov 5j"
+    when
+        o : Osiguranje( premijskiStepenPre == 11, (osnovnaCena == 10000 || osnovnaCena == 11000 || osnovnaCena == 15000 || osnovnaCena == 25000) )
+    then
+    	o.setOsnovnaCena(o.getOsnovnaCena() * 2.3);
+        update( o );
+end
+
+rule "Uslov 5k"
+    when
+        o : Osiguranje( premijskiStepenPre == 12, (osnovnaCena == 10000 || osnovnaCena == 11000 || osnovnaCena == 15000 || osnovnaCena == 25000) )
+    then
+    	o.setOsnovnaCena(o.getOsnovnaCena() * 2.5);
+        update( o );
+end
+
+rule "Uslov 7"
+    when
+        o : Osiguranje( novoVozilo == true, premijskiStepenTekuce == 0 )
+    then
+    	o.setPremijskiStepenTekuce(4);
+        update( o );
+end
+
+rule "Uslov 8"
+    when
+        o : Osiguranje( premijskiStepenPre > 1, brojNezgoda == 0, novoVozilo == false, premijskiStepenTekuce == 0 )
+    then
+    	o.setPremijskiStepenTekuce(o.getPremijskiStepenPre() - 1);
+        update( o );
+end
+
+rule "Uslov 8a"
+    when
+        o : Osiguranje( premijskiStepenPre == 1, brojNezgoda == 0, novoVozilo == false, premijskiStepenTekuce == 0 )
+    then
+    	o.setPremijskiStepenTekuce(1);
+        update( o );
+end
+
+rule "Uslov 9"
+    when
+        o : Osiguranje( brojNezgoda > 0, novoVozilo == false, premijskiStepenTekuce == 0 )
+    then
+    	o.setPremijskiStepenTekuce(o.getPremijskiStepenPre() + 3 * o.getBrojNezgoda());
+        update( o );
+end
+
+rule "Uslov 9a"
+    when
+        o : Osiguranje( premijskiStepenTekuce > 12 )
+    then
+    	o.setPremijskiStepenTekuce(12);
+        update( o );
+end
+
+rule "Uslov 10"
+    when
+        o : Osiguranje( premijskiStepenTekuce <= 4, konacnaCena == 0 )
+    then
+    	o.setKonacnaCena(o.getOsnovnaCena() * (0.8 + o.getPremijskiStepenTekuce() * 0.05) );
+        update( o );
+end
+
+rule "Uslov 11"
+    when
+        o : Osiguranje( premijskiStepenTekuce >= 5, konacnaCena == 0 )
+    then
+    	o.setKonacnaCena(o.getOsnovnaCena() * (0.2 + o.getPremijskiStepenTekuce() * 0.1) );
+        update( o );
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+

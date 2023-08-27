@@ -1,0 +1,67 @@
+Uputstvo za instalaciju Drools Expert alata
+
+1. Potrebno je skinuti Eclipse Kepler (4.3) for Java Developers (kao zip fajl) sa linka:
+https://eclipse.org/downloads/packages/eclipse-ide-java-developers/keplersr2
+
+2. Unzipovati skroz ovaj zip fajl i kliknuti na “eclipse.exe” da se startuje eclipse. Potrebno je
+izabrati workspace folder prvi put po startovanju – tu će biti sačuvani svi projekti.
+
+3. Kad se sve učita i otvori eclipse, ići na stavku glavnog menija Help → Install new software
+
+4. Kad se otvori novi prozor u polje pored kojeg piše Work with kopirati sledeći URL i pritisnuti
+enter (ovo je Drools 6.2. Final eclipse update site):
+
+http://download.jboss.org/drools/release/6.2.0.Final/org.drools.updatesite/
+
+5. U velikom polju na sredini prozora će se pojaviti opcija Drools and jBPM. Raširiti je klikom na
+trougao isprek kućice za čekiranje i čekirati samo prve dve opcije: JBoss Drools Core i JBoss
+Drools Core Developer Resources. Ići na Next.
+
+6. Ponovo ići na Next, prihvatiti uslove korišćenja, pa na Finish. Eclipse će tad početi da skida
+Drools i da ga instalira. Po završenoj instalaciji, eclipse će tražiti da se restartuje.
+
+
+Podešavanje Drools Runtime-a (OVO OBAVEZNO DA ZNATE I NA ISPITU DA URADITE JER NEKAD NECE RADITI ODMAH,
+			      REKLI SU DA STE U OBAVEZI DA OVO ZNATE DA URADITE !!!)
+
+7. Izabrati opciju iz glavnog menija Window → Preferences.
+
+8. Iz prozora koji se otvorio izabrati opciju Drools → Installed Drools Runtimes pa kliknuti na
+Add.
+
+9. Kliknuti na opciju Create a new Drools 6.2 Runtime i izabrati folder gde će Drools držati svoje
+jar fajlove. Kliknuti na Ok.
+
+10. Sad se u prozoru za opcije koji je još uvek otvoren (Drools → Installed Drools Runtimes)
+pojavljuje jedan nov red u tabeli Drools 6.2. Final Runtime. Čekirati kućicu ispred ovog reda i
+kliknuti na Ok.
+
+========================== 	ARI	===================================
+
+1. Kako se pravi projekat?
+
+- File -> New -> Other -> Drools -> Drools project
+- Nazovete kako želite, na ispitu će vam dati neki format sa imenom, prezimenom i brojem indeksa
+- Kad kliknete next, prva dva checkboxa ostavite štriklirana
+- Z GroupId, ArtifactId i Version napišite random šta god želite i kliknite Finish
+
+Ako se javi neka greška kad napravite projekat:
+
+- Desni klik na projekat -> Properties -> Drools -> Štriklirajte Enable project specific settings i izaberite
+  taj Drools 6.2.0Final runtime što ste malo pre kreirali u 10. koraku.
+
+- Drugi tip greške je da vam pomene neku verziju tipa 1.4 kad pokušate da sačuvate projekat. To je do kompajlera.
+  Idete na Windows -> Preferences -> Java -> Compiler i izaberete verziju 1.7.
+
+
+========================== 	ARI	===================================
+
+
+
+
+
+
+
+
+
+

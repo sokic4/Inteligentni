@@ -1,0 +1,132 @@
+package com.sample;
+
+import java.util.ArrayList;
+
+
+public class Krov {
+	
+	private ArrayList<String> prokisnjava = new ArrayList<>();
+	private int brojNedostajucihCrepova;
+	private double kvadratura;
+	private boolean ulegao;
+	private boolean drvoSaKrosnjom;
+	private boolean oluciZardjali;
+	private double ukupnaCenaRadova;
+	private ArrayList<String> potrebniRadovi = new ArrayList<>();
+
+	
+	
+	@Override
+	public String toString() {
+		return "Krov [prokisnjava=" + prokisnjava
+				+ ", brojNedostajucihCrepova=" + brojNedostajucihCrepova
+				+ ", kvadratura=" + kvadratura + ", ulegao=" + ulegao
+				+ ", \n\ndrvoSaKrosnjom=" + drvoSaKrosnjom + ", oluciZardjali="
+				+ oluciZardjali + ", ukupnaCenaRadova=" + ukupnaCenaRadova
+				+ ", potrebniRadovi=" + potrebniRadovi + "]";
+	}
+
+
+
+	public ArrayList<String> getProkisnjava() {
+		return prokisnjava;
+	}
+
+
+
+	public void setProkisnjava(ArrayList<String> prokisnjava) {
+		this.prokisnjava = prokisnjava;
+	}
+
+
+
+	public int getBrojNedostajucihCrepova() {
+		return brojNedostajucihCrepova;
+	}
+
+
+
+	public void setBrojNedostajucihCrepova(int brojNedostajucihCrepova) {
+		this.brojNedostajucihCrepova = brojNedostajucihCrepova;
+	}
+
+
+
+	public double getKvadratura() {
+		return kvadratura;
+	}
+
+
+
+	public void setKvadratura(double kvadratura) {
+		this.kvadratura = kvadratura;
+	}
+
+
+
+	public boolean isUlegao() {
+		return ulegao;
+	}
+
+
+
+	public void setUlegao(boolean ulegao) {
+		this.ulegao = ulegao;
+	}
+
+
+
+	public boolean isDrvoSaKrosnjom() {
+		return drvoSaKrosnjom;
+	}
+
+
+
+	public void setDrvoSaKrosnjom(boolean drvoSaKrosnjom) {
+		this.drvoSaKrosnjom = drvoSaKrosnjom;
+	}
+
+
+
+	public boolean isOluciZardjali() {
+		return oluciZardjali;
+	}
+
+
+
+	public void setOluciZardjali(boolean oluciZardjali) {
+		this.oluciZardjali = oluciZardjali;
+	}
+
+
+
+	public double getUkupnaCenaRadova() {
+		return ukupnaCenaRadova;
+	}
+
+
+
+	public void setUkupnaCenaRadova(double ukupnaCenaRadova) {
+		this.ukupnaCenaRadova = ukupnaCenaRadova;
+	}
+
+
+
+	public ArrayList<String> getPotrebniRadovi() {
+		return potrebniRadovi;
+	}
+
+
+
+	public void setPotrebniRadovi(ArrayList<String> potrebniRadovi) {
+		this.potrebniRadovi = potrebniRadovi;
+	}
+	
+	
+	
+	
+	
+	
+	
+
+}

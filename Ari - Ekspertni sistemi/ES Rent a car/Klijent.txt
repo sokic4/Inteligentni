@@ -1,0 +1,79 @@
+package com.sample;
+
+import java.util.ArrayList;
+
+public class Klijent {
+	
+	private boolean posedujeVazecuVozackuB;
+	private int godine;
+	private double godinePosedovanjaVozacke;
+	private boolean dozvoljenoIzdavanje = true;
+	private boolean depozit;
+	private double iznosDepozita;
+	private ArrayList<String> dozvoljeneKlaseVozila = new ArrayList<>();
+	
+	
+	@Override
+	public String toString() {
+		
+		if(!depozit){
+			return "Klijent [dozvoljenoIzdavanje=" + dozvoljenoIzdavanje
+					+ ", depozit=" + depozit + ", klaseVozila=" + dozvoljeneKlaseVozila + "]";
+		}
+		
+		return "Klijent [dozvoljenoIzdavanje=" + dozvoljenoIzdavanje
+				+ ", depozit=" + depozit + ", iznosDepozita=" + iznosDepozita
+				+ ", klaseVozila=" + dozvoljeneKlaseVozila + "]";
+	}
+	
+	
+	
+	public boolean isPosedujeVazecuVozackuB() {
+		return posedujeVazecuVozackuB;
+	}
+
+	public void setPosedujeVazecuVozackuB(boolean posedujeVazecuVozackuB) {
+		this.posedujeVazecuVozackuB = posedujeVazecuVozackuB;
+	}
+	
+	public int getGodine() {
+		return godine;
+	}
+	public void setGodine(int godine) {
+		this.godine = godine;
+	}
+	public double getGodinePosedovanjaVozacke() {
+		return godinePosedovanjaVozacke;
+	}
+	public void setGodinePosedovanjaVozacke(double godinePosedovanjaVozacke) {
+		this.godinePosedovanjaVozacke = godinePosedovanjaVozacke;
+	}
+	public boolean isDozvoljenoIzdavanje() {
+		return dozvoljenoIzdavanje;
+	}
+	public void setDozvoljenoIzdavanje(boolean dozvoljenoIzdavanje) {
+		this.dozvoljenoIzdavanje = dozvoljenoIzdavanje;
+	}
+	public boolean isDepozit() {
+		return depozit;
+	}
+	public void setDepozit(boolean depozit) {
+		this.depozit = depozit;
+	}
+	public double getIznosDepozita() {
+		return iznosDepozita;
+	}
+	public void setIznosDepozita(double iznosDepozita) {
+		this.iznosDepozita = iznosDepozita;
+	}
+	public ArrayList<String> getDozvoljeneKlaseVozila() {
+		return dozvoljeneKlaseVozila;
+	}
+	public void setDozvoljeneKlaseVozila(ArrayList<String> dozvoljeneKlaseVozila) {
+		this.dozvoljeneKlaseVozila = dozvoljeneKlaseVozila;
+	}
+	
+	
+	
+
+}

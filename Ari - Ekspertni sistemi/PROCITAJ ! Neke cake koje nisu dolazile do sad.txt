@@ -1,0 +1,26 @@
+
+================== ARI ==================
+
+Salience koristite da biste obeležili koje pravilo (rule) ima veći 
+prioritet, što je veći broj, to je veći prioritet! Ako vam daju nešto
+za prioritet na ispitu, koristite salience.
+
+Takođe imate i exists i forall, pogledajte u primerima ispod.
+
+rule "Da li postoji neki muskarac sa 40 godina"
+salience 11
+	when
+		exists Osoba (pol == 'M', godine == 40)
+	then
+		System.out.println("Postoje muskarci sa 40 godina");
+end
+
+rule "Da li su sve osobe muskarci"
+	when
+		forall (Osoba(pol == 'M'))
+	then
+		System.out.println("Sve osobe su muskarci");
+	end
+
+
+================== ARI ==================

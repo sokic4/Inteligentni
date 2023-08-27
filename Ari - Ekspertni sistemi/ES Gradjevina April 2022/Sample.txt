@@ -1,0 +1,82 @@
+package com.sample
+ 
+import com.sample.Krov;
+ 
+rule "Uslov 2"
+    when
+        k : Krov( prokisnjava.contains("po sredini"), ulegao == true, !potrebniRadovi.contains("zameniti krov") )
+    then
+		k.getPotrebniRadovi().add("zameniti krov");
+		k.setUkupnaCenaRadova(1000 + 10 * k.getKvadratura() );
+        update( k );
+end
+
+rule "Uslov 3"
+    when
+        k : Krov ( prokisnjava.contains("po sredini"), brojNedostajucihCrepova > 0, !potrebniRadovi.contains("zameniti crepove") )
+    then
+        k.getPotrebniRadovi().add("zameniti crepove");
+        k.setUkupnaCenaRadova(k.getUkupnaCenaRadova() + 2 * k.getBrojNedostajucihCrepova() );
+        update( k );
+end
+
+rule "Uslov 4"
+    when
+        k : Krov ( prokisnjava.contains("po sredini"), brojNedostajucihCrepova == 0, ulegao == false, !potrebniRadovi.contains("pregled krova") )
+    then
+        k.getPotrebniRadovi().add("pregled krova");
+        k.setUkupnaCenaRadova(k.getUkupnaCenaRadova() + 200 );
+        update( k );
+end
+
+rule "Uslov 5"
+    when
+        k : Krov ( prokisnjava.contains("oko odzaka"), !potrebniRadovi.contains("olucarski radovi") )
+    then
+        k.getPotrebniRadovi().add("olucarski radovi");
+        k.setUkupnaCenaRadova(k.getUkupnaCenaRadova() + 50 );
+        update( k );
+end
+
+rule "Uslov 6"
+    when
+        k : Krov ( prokisnjava.contains("po ivici"), oluciZardjali == true, drvoSaKrosnjom == true, 
+					!potrebniRadovi.contains("zameniti oluke"), !potrebniRadovi.contains("skratiti krosnju") )
+    then
+        k.getPotrebniRadovi().add("zameniti oluke");
+        k.getPotrebniRadovi().add("skratiti krosnju");
+        k.setUkupnaCenaRadova(k.getUkupnaCenaRadova() + 350 );
+        update( k );
+end
+
+rule "Uslov 7"
+    when
+        k : Krov ( prokisnjava.contains("po ivici"), oluciZardjali == false, drvoSaKrosnjom == true, 
+					!potrebniRadovi.contains("ocistiti oluke"), !potrebniRadovi.contains("skratiti krosnju") )
+    then
+        k.getPotrebniRadovi().add("ocistiti oluke");
+        k.getPotrebniRadovi().add("skratiti krosnju");
+        k.setUkupnaCenaRadova(k.getUkupnaCenaRadova() + 70 );
+        update( k );
+end
+
+rule "Uslov 8"
+    when
+        k : Krov ( ( prokisnjava.contains("voda sliva niz zid") || prokisnjava.contains("po ivici") ), oluciZardjali == true, 
+        					 !potrebniRadovi.contains("zameniti oluke") )
+    then
+        k.getPotrebniRadovi().add("zameniti oluke");
+        k.setUkupnaCenaRadova(k.getUkupnaCenaRadova() + 300 );
+        update( k );
+end
+
+
+
+
+
+
+
+
+
+
+

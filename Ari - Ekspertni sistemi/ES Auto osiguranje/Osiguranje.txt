@@ -1,0 +1,77 @@
+package com.sample;
+
+public class Osiguranje {
+
+	private int snaga;
+	private double osnovnaCena;
+	private int premijskiStepenPre;
+	private int premijskiStepenTekuce;
+	private int brojNezgoda;
+	private boolean novoVozilo;
+	private double konacnaCena;
+	
+	@Override
+	public String toString() {
+		return "Osiguranje [osnovnaCena=" + osnovnaCena
+				+ ", premijskiStepenTekuce=" + premijskiStepenTekuce
+				+ ", konacnaCena=" + konacnaCena + "]";
+	}
+
+	public int getSnaga() {
+		return snaga;
+	}
+	
+	public void setSnaga(int snaga) {
+		this.snaga = snaga;
+	}
+	
+	public double getOsnovnaCena() {
+		return osnovnaCena;
+	}
+	
+	public void setOsnovnaCena(double osnovnaCena) {
+		this.osnovnaCena = osnovnaCena;
+	}
+	
+	public int getPremijskiStepenPre() {
+		return premijskiStepenPre;
+	}
+	
+	public void setPremijskiStepenPre(int premijskiStepenPre) {
+		this.premijskiStepenPre = premijskiStepenPre;
+	}
+	
+	public int getPremijskiStepenTekuce() {
+		return premijskiStepenTekuce;
+	}
+	
+	public void setPremijskiStepenTekuce(int premijskiStepenTekuce) {
+		this.premijskiStepenTekuce = premijskiStepenTekuce;
+	}
+	
+	public int getBrojNezgoda() {
+		return brojNezgoda;
+	}
+	
+	public void setBrojNezgoda(int brojNezgoda) {
+		this.brojNezgoda = brojNezgoda;
+	}
+	
+	public boolean isNovoVozilo() {
+		return novoVozilo;
+	}
+	
+	public void setNovoVozilo(boolean novoVozilo) {
+		this.novoVozilo = novoVozilo;
+	}
+	
+	public double getKonacnaCena() {
+		return konacnaCena;
+	}
+	
+	public void setKonacnaCena(double konacnaCena) {
+		this.konacnaCena = konacnaCena;
+	}
+	
+	
+}

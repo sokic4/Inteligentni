@@ -1,0 +1,90 @@
+package com.sample
+ 
+import com.sample.Klijent;
+ 
+rule "Uslov 1"
+    when
+        k : Klijent( posedujeVazecuVozackuB == false, dozvoljenoIzdavanje == true )
+    then
+    	k.setDozvoljenoIzdavanje(false);
+        update( k );
+end
+
+rule "Uslov 2"
+    when
+        k : Klijent( posedujeVazecuVozackuB == true, ( godine < 19 || godinePosedovanjaVozacke < 1 ) , dozvoljenoIzdavanje == true)
+    then
+        k.setDozvoljenoIzdavanje(false);
+        update( k );
+end
+
+rule "Uslov 4"
+    when
+        k : Klijent( posedujeVazecuVozackuB == true, dozvoljenoIzdavanje == true, godinePosedovanjaVozacke < 5, depozit == false )
+    then
+    	k.setDepozit(true);
+        update( k );
+end
+
+rule "Uslov 5"
+    when
+        k : Klijent( posedujeVazecuVozackuB == true, dozvoljenoIzdavanje == true, godinePosedovanjaVozacke <= 3, 
+        				depozit == true, iznosDepozita == 0 )
+    then
+    	k.setIznosDepozita(50);
+        update( k );
+end
+
+rule "Uslov 6"
+    when
+        k : Klijent( posedujeVazecuVozackuB == true, dozvoljenoIzdavanje == true, godinePosedovanjaVozacke > 3,
+        				godinePosedovanjaVozacke < 5, depozit == true )
+    then
+    	k.setIznosDepozita(30);
+        update( k );
+end
+
+rule "Uslov 7"
+    when
+        k : Klijent( posedujeVazecuVozackuB == true, dozvoljenoIzdavanje == true, godinePosedovanjaVozacke <= 2,
+        				k.getDozvoljeneKlaseVozila().isEmpty() )
+    then
+    	k.getDozvoljeneKlaseVozila().add("A");
+    	k.getDozvoljeneKlaseVozila().add("B");
+        update( k );
+end
+
+
+rule "Uslov 8"
+    when
+        k : Klijent( posedujeVazecuVozackuB == true, dozvoljenoIzdavanje == true, godinePosedovanjaVozacke > 2,
+        				godinePosedovanjaVozacke < 5, k.getDozvoljeneKlaseVozila().isEmpty() )
+    then
+    	k.getDozvoljeneKlaseVozila().add("A");
+    	k.getDozvoljeneKlaseVozila().add("B");
+    	k.getDozvoljeneKlaseVozila().add("C");
+    	k.getDozvoljeneKlaseVozila().add("D");
+        update( k );
+end
+
+rule "Uslov 9"
+    when
+        k : Klijent( posedujeVazecuVozackuB == true, dozvoljenoIzdavanje == true, 
+        				godinePosedovanjaVozacke >= 5,  k.getDozvoljeneKlaseVozila().isEmpty() )
+    then
+    	k.getDozvoljeneKlaseVozila().add("A");
+    	k.getDozvoljeneKlaseVozila().add("B");
+    	k.getDozvoljeneKlaseVozila().add("C");
+    	k.getDozvoljeneKlaseVozila().add("D");
+    	k.getDozvoljeneKlaseVozila().add("E");
+    	k.getDozvoljeneKlaseVozila().add("F");
+        update( k );
+end
+
+
+
+
+
+
+
+
